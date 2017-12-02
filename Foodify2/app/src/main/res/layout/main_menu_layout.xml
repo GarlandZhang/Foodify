@@ -34,12 +34,12 @@
 
         <ListView
             android:id="@+id/expiredFoodListView"
-            android:layout_width="200dp"
+            android:layout_width="150dp"
             android:layout_height="match_parent" />
 
         <ListView
             android:id="@+id/expiredDateListView"
-            android:layout_width="200dp"
+            android:layout_width="250dp"
             android:layout_height="match_parent" />
 
     </LinearLayout>

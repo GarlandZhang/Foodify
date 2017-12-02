@@ -149,47 +149,46 @@ public class MainActivity extends AppCompatActivity {
             //get page
             try {
                 doc = Jsoup.connect(eatbydateLink).get();
+                //get element by id
+                Element table = doc.getElementById("unopened");
+                Elements rows = table.getElementsByTag("TR");
+
+                Elements rowHeaders = rows.get(0).getElementsByTag("TH");
+
+                //create array of headers
+                headers = new Header[rowHeaders.size()];
+
+                for (int i = 0; i < rowHeaders.size(); i = i + 1) {
+                    Element header = rowHeaders.get(i);
+                    String stringHeader = header.text().toString();
+
+                    headers[i] = new Header();
+                    headers[i].headerName = stringHeader;
+
+                    System.out.println(stringHeader);
+                }
+
+                //get text in elmeent
+                for (int i = 1; i < rows.size(); i = i + 1) {
+                    Element row = rows.get(i);
+                    Elements tds = row.getElementsByTag("TD");
+
+                    if( tds.get(0).text().contains("last")) {
+                        headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
+                        System.out.println(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
+                    }
+                    else if( tds.get(0).text().contains("lasts")){
+                        headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
+                        System.out.println(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
+                    }
+
+                    for (int j = 1; j < tds.size(); j++) {
+                        headers[j].elems.add(tds.get(j).text());
+                        System.out.println(tds.get(j).text());
+                    }
+                }
             } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-
-            //get element by id
-            Element table = doc.getElementById("unopened");
-            Elements rows = table.getElementsByTag("TR");
-
-            Elements rowHeaders = rows.get(0).getElementsByTag("TH");
-
-            //create array of headers
-            headers = new Header[rowHeaders.size()];
-
-            for (int i = 0; i < rowHeaders.size(); i = i + 1) {
-                Element header = rowHeaders.get(i);
-                String stringHeader = header.text().toString();
-
-                headers[i] = new Header();
-                headers[i].headerName = stringHeader;
-
-                System.out.println(stringHeader);
-            }
-
-            //get text in elmeent
-            for (int i = 1; i < rows.size(); i = i + 1) {
-                Element row = rows.get(i);
-                Elements tds = row.getElementsByTag("TD");
-
-                if( tds.get(0).text().contains("last")) {
-                    headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
-                    System.out.println(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
-                }
-                else if( tds.get(0).text().contains("lasts")){
-                    headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
-                    System.out.println(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
-                }
-
-                for (int j = 1; j < tds.size(); j++) {
-                    headers[j].elems.add(tds.get(j).text());
-                    System.out.println(tds.get(j).text());
-                }
+                Toast.makeText(getApplicationContext(), fruitInput + " does not exist", Toast.LENGTH_SHORT).show();
             }
 
         }
