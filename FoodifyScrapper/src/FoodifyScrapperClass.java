@@ -21,13 +21,41 @@ public class FoodifyScrapperClass {
 	
 	public static void main(String[]args ){
 		
-		String fruit_input = "strawberries";
+		String fruit_input = "strawberries",
+				query = "how+long+do+" + fruit_input + "+last";
+		
+		Document googleSearchDoc = null; 
+
+		//get google search results
+		try {
+			googleSearchDoc = Jsoup
+			        .connect("http://www.google.com/search?q=" + query)
+			        .userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:5.0) Gecko/20100101 Firefox/5.0")     
+			        .get();
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
+	
+		//using selector api here
+		Elements links = googleSearchDoc.select("a[href]");
+		
+		String eatbydateLink = "";
+		
+		for(Element link: links){
+			String url = link.attr("href");
+			
+			if( url.contains("eatbydate")){
+				eatbydateLink = "http://" + url.substring(url.lastIndexOf("www."), url.lastIndexOf('/')+1);
+			}
+		}
+		
+		System.out.println(eatbydateLink);
 		
 		Document doc = null;
 
 		//get page
 		try {
-			doc = Jsoup.connect("http://www.eatbydate.com/fruits/fresh/how-long-do-strawberries-last-shelf-life-expiration-date/").get();
+			doc = Jsoup.connect(eatbydateLink).get();
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		}
