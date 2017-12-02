@@ -1,6 +1,7 @@
 package com.example.gzhang.foodify2;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,20 +16,37 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import clarifai2.api.ClarifaiBuilder;
+import clarifai2.api.ClarifaiClient;
+import clarifai2.api.ClarifaiResponse;
+import clarifai2.api.request.input.SearchClause;
+import clarifai2.dto.input.ClarifaiInput;
+import clarifai2.dto.input.ClarifaiImage;
+import clarifai2.dto.model.ConceptModel;
+import clarifai2.dto.model.output.ClarifaiOutput;
+import clarifai2.dto.model.output_info.ConceptOutputInfo;
+import clarifai2.dto.prediction.Concept;
+import clarifai2.dto.search.SearchInputsResult;
+
 public class MainActivity extends AppCompatActivity {
 
-    Button mButton;
+    Button mButton,
+            camButton;
     EditText mEdit;
     Header[] headers;
     ListView mListView;
+
+    int CAMERA_PIC_REQUEST = 0;
 
     public class Header{
 
@@ -48,12 +66,22 @@ public class MainActivity extends AppCompatActivity {
 
         mEdit = (EditText)findViewById(R.id.fruitInput);
         mButton = (Button)findViewById(R.id.submitButton);
+        camButton = (Button)findViewById(R.id.cameraButton);
 
         mButton.setOnClickListener(
                 new View.OnClickListener(){
                     public void onClick(View view){
                         String fruitInput = mEdit.getText().toString();
                         new ExpirationRetriever().execute(fruitInput);
+                    }
+                }
+        );
+
+        camButton.setOnClickListener(
+                new View.OnClickListener(){
+                    public void onClick(View view){
+                        Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                        startActivityForResult(cameraIntent, CAMERA_PIC_REQUEST);
                     }
                 }
         );
@@ -149,13 +177,21 @@ public class MainActivity extends AppCompatActivity {
                 Element row = rows.get(i);
                 Elements tds = row.getElementsByTag("TD");
 
-                headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
-                System.out.println( tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
+                if( tds.get(0).text().contains("last")) {
+                    headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
+                    System.out.println(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
+                }
+                else if( tds.get(0).text().contains("lasts")){
+                    headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
+                    System.out.println(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
+                }
+
                 for (int j = 1; j < tds.size(); j++) {
                     headers[j].elems.add(tds.get(j).text());
                     System.out.println(tds.get(j).text());
                 }
             }
+
         }
 
         @Override
@@ -171,6 +207,65 @@ public class MainActivity extends AppCompatActivity {
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(getBaseContext(),
                     android.R.layout.simple_list_item_1, foodTypes);
             mListView.setAdapter(adapter);
+        }
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CAMERA_PIC_REQUEST) {
+
+            System.out.println( "HERE NOW " );
+
+            Bitmap image = (Bitmap) data.getExtras().get("data");
+            // do whatever you want with the image now
+
+            new RetrievePredictionsTask().execute( image );
+        }
+    }
+
+    public class RetrievePredictionsTask extends AsyncTask<Bitmap, Void, ArrayList<String>>{
+
+        @Override
+        protected ArrayList<String> doInBackground(Bitmap... voids) {
+            Bitmap image = voids[0];
+            ClarifaiClient cc = new ClarifaiBuilder("f4f11b38652648b8ab7b50df4db647f4")
+                    // OPTIONAL. Allows customization of OkHttp by the user
+                    .buildSync(); // or use .build() to get a Future<ClarifaiClient>
+
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            image.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            byte[] byteArray = stream.toByteArray();
+
+            List<ClarifaiOutput<Concept>> predictionResults = cc.getDefaultModels().foodModel().predict()
+                    .withInputs(
+                            ClarifaiInput.forImage(ClarifaiImage.of(byteArray))
+                    )
+                    .executeSync().get();
+
+            ArrayList<String> resultList = new ArrayList<String>();
+
+            for (int i = 0; i < predictionResults.size(); i++) {
+
+
+                ClarifaiOutput<Concept> clarifaiOutput = predictionResults.get(i);
+
+                List<Concept> concepts = clarifaiOutput.data();
+
+                if (concepts != null && concepts.size() > 0) {
+                    for (int j = 0; j < concepts.size(); j++) {
+
+                        resultList.add(concepts.get(j).name());
+                        System.out.println(concepts.get(j).name());
+                    }
+                }
+            }
+            return resultList;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<String> aVoid) {
+            super.onPostExecute(aVoid);
+
+            mEdit.setText(aVoid.get(0));
         }
     }
 }
