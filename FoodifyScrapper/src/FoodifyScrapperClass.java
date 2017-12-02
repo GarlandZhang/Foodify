@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -21,8 +22,10 @@ public class FoodifyScrapperClass {
 	
 	public static void main(String[]args ){
 		
-		String fruit_input = "strawberries",
-				query = "how+long+do+" + fruit_input + "+last";
+		Scanner sc = new Scanner(System.in);
+		
+		String fruit_input = sc.nextLine();
+		String query = "how+long+do+" + fruit_input + "+last";
 		
 		Document googleSearchDoc = null; 
 
@@ -89,7 +92,5 @@ public class FoodifyScrapperClass {
 				System.out.println(tds.get(j).text());
 			}
 		}
-		
-		System.out.println("DONE");
 	}
 }
