@@ -1,12 +1,19 @@
 package com.example.gzhang.foodify2;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Adapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,14 +28,15 @@ public class MainActivity extends AppCompatActivity {
     Button mButton;
     EditText mEdit;
     Header[] headers;
+    ListView mListView;
 
     public class Header{
 
         String headerName;
         ArrayList<String> elems;
 
-        public Header(){
-            headerName="";
+        public Header() {
+            headerName = "";
             elems = new ArrayList<String>();
         }
     }
@@ -49,6 +57,25 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
+
+        mListView = (ListView) findViewById(R.id.listView);
+
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView listView, View itemView, int itemPosition, long itemId)
+            {
+                System.out.println( "You selected: " + listView.getItemAtPosition( itemPosition));
+                Intent intent = new Intent(getBaseContext(), MainMenu.class);
+
+                Header header = headers[itemPosition];
+
+                intent.putExtra("FruitName", header.elems.get(itemPosition));
+
+                //for now just assume its just counter
+                intent.putExtra("expiryDate1", headers[1].elems.get(itemPosition));
+                startActivity(intent);
+            }
+        });
+
     }
 
     private class ExpirationRetriever extends AsyncTask<String,Void,Void>{
@@ -122,11 +149,28 @@ public class MainActivity extends AppCompatActivity {
                 Element row = rows.get(i);
                 Elements tds = row.getElementsByTag("TD");
 
-                for (int j = 0; j < tds.size(); j++) {
+                headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
+                System.out.println( tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
+                for (int j = 1; j < tds.size(); j++) {
                     headers[j].elems.add(tds.get(j).text());
                     System.out.println(tds.get(j).text());
                 }
             }
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            ArrayList<String> firstHeaderElems = headers[0].elems;
+            String[] foodTypes = new String[firstHeaderElems.size()];
+
+            for( int i = 0; i < firstHeaderElems.size(); i = i + 1 ){
+                foodTypes[ i ] = firstHeaderElems.get(i);
+                System.out.println("Food Types: " + foodTypes[i]);
+            }
+
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(getBaseContext(),
+                    android.R.layout.simple_list_item_1, foodTypes);
+            mListView.setAdapter(adapter);
         }
     }
 }
