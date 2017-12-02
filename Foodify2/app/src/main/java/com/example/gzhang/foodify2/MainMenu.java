@@ -73,7 +73,7 @@ public class MainMenu extends Activity {
         expiryDateItem = sdf.format(getExpiryDate(expiryDate).getTime());
 
         expiredDates = new ArrayList<String>();
-        expiredDates.add( expiryDateItem );
+        expiredDates.add( expiryDate + " | " + expiryDateItem );
 
         efs = new ArrayList<ExpiredFoods>();
         efs.add( new ExpiredFoods(headerName,getExpiryDate(expiryDate)));
