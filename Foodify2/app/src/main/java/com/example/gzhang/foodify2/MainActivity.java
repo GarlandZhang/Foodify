@@ -1,5 +1,6 @@
 package com.example.gzhang.foodify2;
 
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,6 +20,7 @@ public class MainActivity extends AppCompatActivity {
 
     Button mButton;
     EditText mEdit;
+    Header[] headers;
 
     public class Header{
 
@@ -43,78 +45,87 @@ public class MainActivity extends AppCompatActivity {
                 new View.OnClickListener(){
                     public void onClick(View view){
                         String fruitInput = mEdit.getText().toString();
-                        webScrape(fruitInput);
+                        new ExpirationRetriever().execute(fruitInput);
                     }
                 }
         );
     }
 
-    public void webScrape(String fruitInput){
-        String query = "how+long+do+" + fruitInput + "+last";
+    private class ExpirationRetriever extends AsyncTask<String,Void,Void>{
 
-        Document googleSearchDoc = null;
-
-        //get google search results
-        try {
-            googleSearchDoc = Jsoup
-                    .connect("http://www.google.com/search?q=" + query)
-                    .userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:5.0) Gecko/20100101 Firefox/5.0")
-                    .get();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
+        @Override
+        protected Void doInBackground(String... params) {
+            webScrape(params[0]);
+            return null;
         }
 
-        //using selector api here
-        Elements links = googleSearchDoc.select("a[href]");
+        public void webScrape(String fruitInput) {
+            String query = "how+long+do+" + fruitInput + "+last";
 
-        String eatbydateLink = "";
+            Document googleSearchDoc = null;
 
-        for(Element link: links){
-            String url = link.attr("href");
-
-            if( url.contains("eatbydate")){
-                eatbydateLink = "http://" + url.substring(url.lastIndexOf("www."), url.lastIndexOf('/')+1);
+            //get google search results
+            try {
+                googleSearchDoc = Jsoup
+                        .connect("http://www.google.com/search?q=" + query)
+                        .userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:5.0) Gecko/20100101 Firefox/5.0")
+                        .get();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
             }
-        }
 
-        System.out.println(eatbydateLink);
+            //using selector api here
+            Elements links = googleSearchDoc.select("a[href]");
 
-        Document doc = null;
+            String eatbydateLink = "";
 
-        //get page
-        try {
-            doc = Jsoup.connect(eatbydateLink).get();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
+            for (Element link : links) {
+                String url = link.attr("href");
 
-        //get element by id
-        Element table = doc.getElementById("unopened");
-        Elements rows = table.getElementsByTag("TR");
+                if (url.contains("eatbydate")) {
+                    eatbydateLink = "http://" + url.substring(url.lastIndexOf("www."), url.lastIndexOf('/') + 1);
+                }
+            }
 
-        Elements rowHeaders = rows.get(0).getElementsByTag("TH");
+            System.out.println(eatbydateLink);
 
-        //create array of headers
-        Header[] headers = new Header[rowHeaders.size()];
+            Document doc = null;
 
-        for(int i = 0; i < rowHeaders.size(); i = i + 1 ){
-            Element header = rowHeaders.get(i);
-            String stringHeader = header.text();
+            //get page
+            try {
+                doc = Jsoup.connect(eatbydateLink).get();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
 
-            headers[i] = new Header();
-            headers[i].headerName = stringHeader;
+            //get element by id
+            Element table = doc.getElementById("unopened");
+            Elements rows = table.getElementsByTag("TR");
 
-            System.out.println(stringHeader);
-        }
+            Elements rowHeaders = rows.get(0).getElementsByTag("TH");
 
-        //get text in elmeent
-        for (int i = 1; i < rows.size(); i = i + 1) {
-            Element row = rows.get(i);
-            Elements tds = row.getElementsByTag("TD");
+            //create array of headers
+            headers = new Header[rowHeaders.size()];
 
-            for (int j = 0; j < tds.size(); j++) {
-                headers[j].elems.add(tds.get(j).text());
-                System.out.println(tds.get(j).text());
+            for (int i = 0; i < rowHeaders.size(); i = i + 1) {
+                Element header = rowHeaders.get(i);
+                String stringHeader = header.text().toString();
+
+                headers[i] = new Header();
+                headers[i].headerName = stringHeader;
+
+                System.out.println(stringHeader);
+            }
+
+            //get text in elmeent
+            for (int i = 1; i < rows.size(); i = i + 1) {
+                Element row = rows.get(i);
+                Elements tds = row.getElementsByTag("TD");
+
+                for (int j = 0; j < tds.size(); j++) {
+                    headers[j].elems.add(tds.get(j).text());
+                    System.out.println(tds.get(j).text());
+                }
             }
         }
     }
