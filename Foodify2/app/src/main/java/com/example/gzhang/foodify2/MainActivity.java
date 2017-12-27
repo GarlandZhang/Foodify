@@ -46,7 +46,8 @@ public class MainActivity extends AppCompatActivity {
     Header[] headers;
     ListView mListView;
 
-    int CAMERA_PIC_REQUEST = 0;
+    int CAMERA_PIC_REQUEST = 0,
+        OPTIONS_REQUEST = 1;
 
     public class Header{
 
@@ -219,6 +220,10 @@ public class MainActivity extends AppCompatActivity {
 
             new RetrievePredictionsTask().execute( image );
         }
+        else if(requestCode == OPTIONS_REQUEST){
+
+            mEdit.setText(data.getExtras().getString("foodName"));
+        }
     }
 
     public class RetrievePredictionsTask extends AsyncTask<Bitmap, Void, ArrayList<String>>{
@@ -261,10 +266,25 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(ArrayList<String> aVoid) {
-            super.onPostExecute(aVoid);
+        protected void onPostExecute(ArrayList<String> optionsList) {
+            super.onPostExecute(optionsList);
 
-            mEdit.setText(aVoid.get(0));
+            Bundle extra = new Bundle();
+            extra.putSerializable("FoodOptions", optionsList);
+
+            Intent optionsIntent = new Intent(getBaseContext(), PossibleOptions.class);
+            optionsIntent.putExtra("extra", extra);
+            startActivityForResult(optionsIntent, OPTIONS_REQUEST);
+
+            /*
+            if( aVoid.get(0).equals("citrus") || aVoid.get(0).equals("juice"))
+            {
+                mEdit.setText("orange");
+            }
+            else {
+                mEdit.setText(aVoid.get(0));
+            }
+            */
         }
     }
 }

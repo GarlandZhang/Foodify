@@ -143,6 +143,7 @@ public class MainMenu extends Activity {
         int numUnits = 0;
 
         if( timeString.indexOf('-') != -1 ) {
+            System.out.println("JASKDJHSALKDHJ" + numUnits);
             numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf('-')));
         }
         else{

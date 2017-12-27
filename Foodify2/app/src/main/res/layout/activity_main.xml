@@ -24,7 +24,7 @@
             android:id="@+id/fruitInput"
             android:layout_width="150dp"
             android:layout_height="wrap_content"
-            android:text="bananas"
+            android:text="banana"
             tools:layout_editor_absoluteX="67dp"
             tools:layout_editor_absoluteY="0dp" />
 

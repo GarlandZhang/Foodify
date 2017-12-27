@@ -23,6 +23,9 @@
         <activity android:name=".MainMenu">
 
         </activity>
+        <activity android:name=".PossibleOptions">
+
+        </activity>
     </application>
 
 </manifest>
