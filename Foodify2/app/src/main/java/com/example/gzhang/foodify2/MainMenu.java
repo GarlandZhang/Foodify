@@ -17,6 +17,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,17 +31,20 @@ import java.util.List;
 public class MainMenu extends Activity {
 
     ListView expiredFoodListView,
-    expiredDateListView;
+    expiredDateListView,
+    expirationDeadlineListView;
 
     String expiryDateItem;
     String headerName;
     String expiryDate;
     Date today;
-    ArrayList<ExpiredFoods> efs;
-    ArrayList<String> names;
+    ArrayList<String> foodNames;
+    ArrayList<String> expiryDates;
+    ArrayList<String> expirationDeadlines;
 
-    ArrayList<String> expiredDates;
+    int CURRENT_FOOD_LIST_REQUEST = 3;
 
+/*
     public class ExpiredFoods{
         String foodName;
         Date foodExpiryDate;
@@ -50,7 +54,7 @@ public class MainMenu extends Activity {
             foodExpiryDate = expiryDate;
         }
     }
-
+*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,44 +62,25 @@ public class MainMenu extends Activity {
 
         expiredFoodListView = (ListView)findViewById(R.id.expiredFoodListView);
         expiredDateListView = (ListView)findViewById(R.id.expiredDateListView);
+        expirationDeadlineListView = (ListView) findViewById(R.id.expirationDeadlineListView);
 
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-        Calendar c = Calendar.getInstance();
-        c.setTime(new Date());
-
-        Intent intent = getIntent();
-        headerName = intent.getStringExtra("FruitName");
-        expiryDate = intent.getStringExtra("expiryDate1");
-
-        names = new ArrayList<String>();
-        names.add( headerName);
-
-        expiryDateItem = sdf.format(getExpiryDate(expiryDate).getTime());
-
-        expiredDates = new ArrayList<String>();
-        expiredDates.add( expiryDate + " | " + expiryDateItem );
-
-        efs = new ArrayList<ExpiredFoods>();
-        efs.add( new ExpiredFoods(headerName,getExpiryDate(expiryDate)));
-
-        //get today
-        today = c.getTime();
-
-        expiredFoodListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            public void onItemClick(AdapterView listView, View itemView, int itemPosition, long itemId)
-            {
-
-            }
-        });
+        Bundle extra = getIntent().getBundleExtra("extra");
+        foodNames = (ArrayList<String>)extra.getSerializable("FoodNames");
+        expiryDates = (ArrayList<String>)extra.getSerializable("ExpiryDates");
+        expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");
 
         ArrayAdapter<String> nameAdapter = new ArrayAdapter<String>(getBaseContext(),
-                android.R.layout.simple_list_item_1, names);
+                android.R.layout.simple_list_item_1, foodNames);
 
         ArrayAdapter<String> dateAdapter = new ArrayAdapter<String>(getBaseContext(),
-                android.R.layout.simple_list_item_1, expiredDates);
+                android.R.layout.simple_list_item_1, expiryDates);
+
+        ArrayAdapter<String> deadlineAdapter = new ArrayAdapter<String>(getBaseContext(),
+                android.R.layout.simple_list_item_1, expirationDeadlines);
 
         expiredFoodListView.setAdapter( nameAdapter );
         expiredDateListView.setAdapter( dateAdapter );
+        expirationDeadlineListView.setAdapter( deadlineAdapter );
 
        /* System.out.println( almostExpired() );
 
@@ -124,51 +109,13 @@ public class MainMenu extends Activity {
         NotificationManager mNotifyMgr =
                 (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 // Builds the notification and issues it.
-        mNotifyMgr.notify(mNotificationId, mBuilder.build());*/
+        mNotifyMgr.notify(mNotificationId, mBuilder.build());
 
        scheduleNotification( this, 3000, 0);
        System.out.println("DONE");
     }
 
-    public int monthsToDays(int numMonths){
-        return weeksToDays(4*numMonths);
-    }
 
-    public int weeksToDays(int numWeeks){
-        return 7 * numWeeks;
-    }
-
-    private Date getExpiryDate(String timeString) {
-
-        int numUnits = 0;
-
-        if( timeString.indexOf('-') != -1 ) {
-            System.out.println("JASKDJHSALKDHJ" + numUnits);
-            numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf('-')));
-        }
-        else{
-            numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf(' ' )));
-        }
-
-        Calendar c = Calendar.getInstance();
-        c.setTime(new Date()); // Now use today date.
-
-        int time = 0;
-
-        if( timeString.contains("Days")){
-            time = numUnits;
-        }
-        else if( timeString.contains("Weeks")){
-            time = weeksToDays(numUnits);
-        }
-        else if( timeString.contains("Months")){
-            time = monthsToDays(numUnits);
-        }
-
-        c.add(Calendar.DATE, time); // Adding 5 days
-
-        return c.getTime();
-    }
 
     private boolean almostExpired(){
 
@@ -198,6 +145,18 @@ public class MainMenu extends Activity {
 
         long futureInMillis = SystemClock.elapsedRealtime() + delay;
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureInMillis, pendingIntent);
+        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureInMillis, pendingIntent);*/
     }
+/*
+    @Override
+    public void onBackPressed() {
+        Intent returnIntent = new Intent();
+        Bundle extra = new Bundle();
+        extra.putSerializable("FoodNames", foodNames);
+        extra.putSerializable("ExpiryDates", expiryDates);
+        extra.putSerializable("ExpirationDeadlines",expirationDeadlines);
+        returnIntent.putExtra( "extra", extra);
+        setResult(CURRENT_FOOD_LIST_REQUEST, returnIntent);
+        finish();
+    }*/
 }

@@ -17,12 +17,12 @@ import java.util.Date;
  * Created by GZhang on 2017-12-02.
  */
 
-public class PossibleOptions extends Activity {
+public class CameraFoodOptions extends Activity {
 
     ListView optionsListView;
     ArrayList<String> optionsList;
 
-    int OPTIONS_REQUEST = 1;
+    int FOOD_OPTIONS_REQUEST = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,8 +40,8 @@ public class PossibleOptions extends Activity {
             public void onItemClick(AdapterView listView, View itemView, int itemPosition, long itemId)
             {
                 Intent returnIntent = new Intent();
-                returnIntent.putExtra("foodName", listView.getItemAtPosition(itemPosition).toString());
-                setResult(OPTIONS_REQUEST, returnIntent);
+                returnIntent.putExtra("FoodName", listView.getItemAtPosition(itemPosition).toString());
+                setResult(FOOD_OPTIONS_REQUEST, returnIntent);
                 finish();
             }
         });

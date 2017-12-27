@@ -5,20 +5,20 @@ import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Adapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import org.jsoup.Jsoup;
@@ -28,15 +28,10 @@ import org.jsoup.select.Elements;
 
 import clarifai2.api.ClarifaiBuilder;
 import clarifai2.api.ClarifaiClient;
-import clarifai2.api.ClarifaiResponse;
-import clarifai2.api.request.input.SearchClause;
 import clarifai2.dto.input.ClarifaiInput;
 import clarifai2.dto.input.ClarifaiImage;
-import clarifai2.dto.model.ConceptModel;
 import clarifai2.dto.model.output.ClarifaiOutput;
-import clarifai2.dto.model.output_info.ConceptOutputInfo;
 import clarifai2.dto.prediction.Concept;
-import clarifai2.dto.search.SearchInputsResult;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -47,7 +42,13 @@ public class MainActivity extends AppCompatActivity {
     ListView mListView;
 
     int CAMERA_PIC_REQUEST = 0,
-        OPTIONS_REQUEST = 1;
+        FOOD_OPTIONS_REQUEST = 1,
+        STORAGE_OPTIONS_REQUEST = 2,
+        CURRENT_FOOD_LIST_REQUEST = 3;
+
+    ArrayList<String> foodNames,
+                      expiryDates,
+                      expirationDeadlines;
 
     public class Header{
 
@@ -65,15 +66,19 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mEdit = (EditText)findViewById(R.id.fruitInput);
+        foodNames = new ArrayList<String>();
+        expiryDates = new ArrayList<String>();
+        expirationDeadlines = new ArrayList<String>();
+
+        mEdit = (EditText)findViewById(R.id.foodInput);
         mButton = (Button)findViewById(R.id.submitButton);
         camButton = (Button)findViewById(R.id.cameraButton);
 
         mButton.setOnClickListener(
                 new View.OnClickListener(){
                     public void onClick(View view){
-                        String fruitInput = mEdit.getText().toString();
-                        new ExpirationRetriever().execute(fruitInput);
+                        String foodInput = mEdit.getText().toString();
+                        new ExpirationRetriever().execute(foodInput);
                     }
                 }
         );
@@ -92,16 +97,27 @@ public class MainActivity extends AppCompatActivity {
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView listView, View itemView, int itemPosition, long itemId)
             {
-                System.out.println( "You selected: " + listView.getItemAtPosition( itemPosition));
-                Intent intent = new Intent(getBaseContext(), MainMenu.class);
-
                 Header header = headers[itemPosition];
 
-                intent.putExtra("FruitName", header.elems.get(itemPosition));
+                ArrayList<String> storageOptions = new ArrayList<String>(),
+                expiryDates = new ArrayList<String>();
 
-                //for now just assume its just counter
-                intent.putExtra("expiryDate1", headers[1].elems.get(itemPosition));
-                startActivity(intent);
+                for(int i = 1; i < headers.length; i++){
+                    storageOptions.add(headers[i].headerName);
+                    expiryDates.add(headers[i].elems.get(itemPosition));
+                }
+
+                Bundle extra = new Bundle();
+                extra.putSerializable("StorageOptions", storageOptions);
+                extra.putSerializable("ExpiryDates", expiryDates);
+
+                Intent storageOptionsIntent = new Intent(getBaseContext(), FoodStorageOptions.class);
+                storageOptionsIntent.putExtra("FoodName", header.elems.get(itemPosition));
+                storageOptionsIntent.putExtra("extra", extra);
+
+                foodNames.add(header.elems.get(itemPosition));
+
+                startActivityForResult(storageOptionsIntent, STORAGE_OPTIONS_REQUEST);
             }
         });
 
@@ -115,8 +131,8 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
 
-        public void webScrape(String fruitInput) {
-            String query = "how+long+do+" + fruitInput + "+last";
+        public void webScrape(String foodInput) {
+            String query = "how+long+do+" + foodInput + "+last";
 
             Document googleSearchDoc = null;
 
@@ -189,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             } catch (IOException ioe) {
-                Toast.makeText(getApplicationContext(), fruitInput + " does not exist", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), foodInput + " does not exist", Toast.LENGTH_SHORT).show();
             }
 
         }
@@ -220,9 +236,31 @@ public class MainActivity extends AppCompatActivity {
 
             new RetrievePredictionsTask().execute( image );
         }
-        else if(requestCode == OPTIONS_REQUEST){
+        else if(requestCode == FOOD_OPTIONS_REQUEST){
 
-            mEdit.setText(data.getExtras().getString("foodName"));
+            mEdit.setText(data.getStringExtra("FoodName"));
+        }
+        else if(requestCode == STORAGE_OPTIONS_REQUEST){
+
+            String expiryDate = data.getStringExtra("ExpiryDate");
+            expiryDates.add(expiryDate);
+            expirationDeadlines.add(getExpirationDeadline(expiryDate));
+
+            Intent currentFoodListIntent = new Intent(getBaseContext(), MainMenu.class);
+            Bundle extra = new Bundle();
+            extra.putSerializable("FoodNames", foodNames);
+            extra.putSerializable("ExpiryDates", expiryDates);
+            extra.putSerializable("ExpirationDeadlines",expirationDeadlines);
+
+            currentFoodListIntent.putExtra("extra", extra);
+            startActivity(currentFoodListIntent);
+            //startActivityForResult(currentFoodListIntent, CURRENT_FOOD_LIST_REQUEST);
+        }
+        else if(requestCode == CURRENT_FOOD_LIST_REQUEST){
+            /*Bundle extra = getIntent().getBundleExtra("extra");
+            foodNames = (ArrayList<String>)extra.getSerializable("FoodNames");
+            expiryDates = (ArrayList<String>)extra.getSerializable("ExpiryDates");
+            expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");*/
         }
     }
 
@@ -272,19 +310,71 @@ public class MainActivity extends AppCompatActivity {
             Bundle extra = new Bundle();
             extra.putSerializable("FoodOptions", optionsList);
 
-            Intent optionsIntent = new Intent(getBaseContext(), PossibleOptions.class);
+            Intent optionsIntent = new Intent(getBaseContext(), CameraFoodOptions.class);
             optionsIntent.putExtra("extra", extra);
-            startActivityForResult(optionsIntent, OPTIONS_REQUEST);
-
-            /*
-            if( aVoid.get(0).equals("citrus") || aVoid.get(0).equals("juice"))
-            {
-                mEdit.setText("orange");
-            }
-            else {
-                mEdit.setText(aVoid.get(0));
-            }
-            */
+            startActivityForResult(optionsIntent, FOOD_OPTIONS_REQUEST);
         }
+    }
+
+
+    private int yearsToDays(int numYears){
+        return 365 * numYears;
+    }
+    private int monthsToDays(int numMonths){
+        return weeksToDays(4*numMonths);
+    }
+    private int weeksToDays(int numWeeks){
+        return 7 * numWeeks;
+    }
+
+    private String getExpirationDeadline(String timeString) {
+/*
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date());
+
+        expiryDateItem = sdf.format(getExpiryDate(expiryDate).getTime());
+
+        expiredDates = new ArrayList<String>();
+        expiredDates.add( expiryDate + " | " + expiryDateItem );
+
+        efs = new ArrayList<ExpiredFoods>();
+        efs.add( new ExpiredFoods(headerName,getExpiryDate(expiryDate)));
+
+        //get today
+        today = c.getTime();
+
+*/
+        int numUnits = 0;
+
+        if( timeString.indexOf('-') != -1 ) {
+            numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf('-')));
+        }
+        else{
+            numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf(' ' )));
+        }
+
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date()); // Now use today date.
+
+        int time = 0;
+        if( timeString.contains("Days")){
+            time = numUnits;
+        }
+        else if( timeString.contains("Weeks")){
+            time = weeksToDays(numUnits);
+        }
+        else if( timeString.contains("Months")){
+            time = monthsToDays(numUnits);
+        }
+        else if( timeString.contains("Years")){
+            time = yearsToDays(numUnits);
+        }
+
+        c.add(Calendar.DATE, time);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+
+        return sdf.format(c.getTime());
     }
 }

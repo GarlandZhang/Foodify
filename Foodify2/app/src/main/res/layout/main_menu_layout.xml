@@ -15,15 +15,14 @@
         android:orientation="horizontal">
 
         <TextView
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:text="Food item"
-            />
+            android:layout_width="149dp"
+            android:layout_height="match_parent"
+            android:text="Food item" />
 
         <TextView
-            android:layout_width="200dp"
+            android:layout_width="237dp"
             android:layout_height="wrap_content"
-            android:text="Expiry date"/>
+            android:text="Expiry date" />
 
     </LinearLayout>
 
@@ -39,8 +38,15 @@
 
         <ListView
             android:id="@+id/expiredDateListView"
-            android:layout_width="250dp"
+            android:layout_width="100dp"
             android:layout_height="match_parent" />
+
+        <ListView
+            android:id="@+id/expirationDeadlineListView"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content">
+
+        </ListView>
 
     </LinearLayout>
 

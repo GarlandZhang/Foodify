@@ -23,7 +23,10 @@
         <activity android:name=".MainMenu">
 
         </activity>
-        <activity android:name=".PossibleOptions">
+        <activity android:name=".CameraFoodOptions">
+
+        </activity>
+        <activity android:name=".FoodStorageOptions">
 
         </activity>
     </application>
