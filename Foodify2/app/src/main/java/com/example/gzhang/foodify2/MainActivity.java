@@ -2,9 +2,12 @@ package com.example.gzhang.foodify2;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -21,7 +24,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -38,7 +43,8 @@ import clarifai2.dto.prediction.Concept;
 public class MainActivity extends AppCompatActivity {
 
     Button mButton,
-            camButton;
+            camButton,
+            currentListButton;
     EditText mEdit;
     Header[] headers;
     ListView mListView;
@@ -75,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
         mEdit = (EditText)findViewById(R.id.foodInput);
         mButton = (Button)findViewById(R.id.submitButton);
         camButton = (Button)findViewById(R.id.cameraButton);
+        currentListButton = (Button)findViewById(R.id.currentListButton);
 
         mButton.setOnClickListener(
                 new View.OnClickListener(){
@@ -90,6 +97,14 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(View view){
                         Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
                         startActivityForResult(cameraIntent, CAMERA_PIC_REQUEST);
+                    }
+                }
+        );
+
+        currentListButton.setOnClickListener(
+                new View.OnClickListener(){
+                    public void onClick(View view){
+                        goToCurrentList();
                     }
                 }
         );
@@ -117,12 +132,53 @@ public class MainActivity extends AppCompatActivity {
                 storageOptionsIntent.putExtra("FoodName", headers[0].elems.get(itemPosition));
                 storageOptionsIntent.putExtra("extra", extra);
 
-                foodNames.add(headers[0].elems.get(itemPosition));
-
                 startActivityForResult(storageOptionsIntent, STORAGE_OPTIONS_REQUEST);
             }
         });
 
+        //save data
+        /*if(savedInstanceState != null){
+            Bundle extra = savedInstanceState.getBundle("extra");
+            foodNames = (ArrayList<String>)extra.getSerializable("FoodNames");
+            expiryDates = (ArrayList<String>)extra.getSerializable("ExpiryDates");
+            expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");
+        }*/
+
+        if(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null) != null) {
+            foodNames.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("FoodNames", null));
+            expiryDates.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpiryDates", null));
+            expirationDeadlines.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null));
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+
+        outState.putSerializable("FoodNames", foodNames);
+        outState.putSerializable("ExpiryDates", expiryDates);
+        outState.putSerializable("ExpirationDeadlines", expirationDeadlines);
+
+        super.onSaveInstanceState(outState, outPersistentState);
+    }
+
+    private void saveSettings(){
+        Set<String> foodNamesSet = new HashSet<String>(foodNames);
+        Set<String> expiryDatesSet = new HashSet<String>(expiryDates);
+        Set<String> expirationDeadlinesSet = new HashSet<String>(expirationDeadlines);
+
+        SharedPreferences.Editor editor = getPreferences(Context.MODE_PRIVATE).edit();
+
+        editor.putStringSet("FoodNames", foodNamesSet);
+        editor.putStringSet("ExpiryDates", expiryDatesSet);
+        editor.putStringSet("ExpirationDeadlines", expirationDeadlinesSet);
+
+        editor.commit();
+    }
+
+    @Override
+    protected void onStop() {
+        saveSettings();
+        super.onStop();
     }
 
     private class ExpirationRetriever extends AsyncTask<String,Void,Void>{
@@ -242,17 +298,12 @@ public class MainActivity extends AppCompatActivity {
             expirationDeadlines.add(new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
 
             String foodName = data.getStringExtra("FoodName");
+            foodNames.add(foodName);
             //create notification
             createNotification(expirationDeadline, foodName);
 
-            Intent currentFoodListIntent = new Intent(getBaseContext(), MainMenu.class);
-            Bundle extra = new Bundle();
-            extra.putSerializable("FoodNames", foodNames);
-            extra.putSerializable("ExpiryDates", expiryDates);
-            extra.putSerializable("ExpirationDeadlines",expirationDeadlines);
+            goToCurrentList();
 
-            currentFoodListIntent.putExtra("extra", extra);
-            startActivity(currentFoodListIntent);
             //startActivityForResult(currentFoodListIntent, CURRENT_FOOD_LIST_REQUEST);
         }
         else if(requestCode == CURRENT_FOOD_LIST_REQUEST){
@@ -261,6 +312,17 @@ public class MainActivity extends AppCompatActivity {
             expiryDates = (ArrayList<String>)extra.getSerializable("ExpiryDates");
             expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");*/
         }
+    }
+
+    private void goToCurrentList() {
+        Intent currentFoodListIntent = new Intent(getBaseContext(), MainMenu.class);
+        Bundle extra = new Bundle();
+        extra.putSerializable("FoodNames", foodNames);
+        extra.putSerializable("ExpiryDates", expiryDates);
+        extra.putSerializable("ExpirationDeadlines",expirationDeadlines);
+
+        currentFoodListIntent.putExtra("extra", extra);
+        startActivity(currentFoodListIntent);
     }
 
     public class RetrievePredictionsTask extends AsyncTask<Bitmap, Void, ArrayList<String>>{

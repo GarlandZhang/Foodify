@@ -44,6 +44,12 @@
     </LinearLayout>
 
 
+    <Button
+        android:id="@+id/currentListButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MY LIST" />
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
