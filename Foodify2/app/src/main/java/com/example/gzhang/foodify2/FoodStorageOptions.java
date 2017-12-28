@@ -37,7 +37,7 @@ public class FoodStorageOptions extends Activity {
         titleTextView.setText("Storage Options");
 
         Intent intent = getIntent();
-        String foodName = intent.getStringExtra("FoodName");
+        final String foodName = intent.getStringExtra("FoodName");
 
         Bundle extra = intent.getBundleExtra("extra");
         foodStorageList = (ArrayList<String>)extra.getSerializable("StorageOptions");
@@ -52,6 +52,7 @@ public class FoodStorageOptions extends Activity {
             {
                 Intent returnIntent = new Intent();
                 returnIntent.putExtra("ExpiryDate", expiryDateList.get(itemPosition));
+                returnIntent.putExtra("FoodName", foodName);
                 setResult(STORAGE_OPTIONS_REQUEST, returnIntent);
                 finish();
             }

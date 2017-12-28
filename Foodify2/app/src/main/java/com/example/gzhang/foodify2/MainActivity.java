@@ -241,8 +241,9 @@ public class MainActivity extends AppCompatActivity {
 
             expirationDeadlines.add(new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
 
+            String foodName = data.getStringExtra("FoodName");
             //create notification
-            createNotification(expirationDeadline);
+            createNotification(expirationDeadline, foodName);
 
             Intent currentFoodListIntent = new Intent(getBaseContext(), MainMenu.class);
             Bundle extra = new Bundle();
@@ -358,9 +359,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void createNotification(Date expirationDeadline) {
+    private void createNotification(Date expirationDeadline, String foodName) {
 
         Intent i = new Intent(MainActivity.this, ExpirationNotification.class);
+        i.putExtra("FoodName", foodName);
         PendingIntent pi = PendingIntent.getBroadcast(getApplicationContext(), 3, i, 0);
         AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
         am.set(AlarmManager.RTC_WAKEUP, expirationDeadline.getTime(), pi);
