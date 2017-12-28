@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -20,6 +21,9 @@ import java.util.Date;
 public class CameraFoodOptions extends Activity {
 
     ListView optionsListView;
+
+    TextView titleTextView;
+
     ArrayList<String> optionsList;
 
     int FOOD_OPTIONS_REQUEST = 1;
@@ -31,6 +35,9 @@ public class CameraFoodOptions extends Activity {
 
         Bundle extra = getIntent().getBundleExtra("extra");
         optionsList = (ArrayList<String>)extra.getSerializable("FoodOptions");
+
+        titleTextView = (TextView)findViewById(R.id.titleTextView);
+        titleTextView.setText("What food is it?");
 
         optionsListView = (ListView)findViewById(R.id.optionsListView);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(getBaseContext(),

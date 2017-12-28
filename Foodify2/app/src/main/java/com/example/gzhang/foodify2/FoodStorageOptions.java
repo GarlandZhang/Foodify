@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.List;
 public class FoodStorageOptions extends Activity {
 
     ListView foodStorageListView;
+    TextView titleTextView;
     ArrayList<String> foodStorageList,
                       expiryDateList;
 
@@ -30,6 +32,9 @@ public class FoodStorageOptions extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.options_layout);
+
+        titleTextView = (TextView)findViewById(R.id.titleTextView);
+        titleTextView.setText("Storage Options");
 
         Intent intent = getIntent();
         String foodName = intent.getStringExtra("FoodName");

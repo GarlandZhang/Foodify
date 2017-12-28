@@ -60,14 +60,14 @@ public class MainMenu extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_menu_layout);
 
-        expiredFoodListView = (ListView)findViewById(R.id.expiredFoodListView);
-        expiredDateListView = (ListView)findViewById(R.id.expiredDateListView);
+        expiredFoodListView = (ListView) findViewById(R.id.expiredFoodListView);
+        expiredDateListView = (ListView) findViewById(R.id.expiredDateListView);
         expirationDeadlineListView = (ListView) findViewById(R.id.expirationDeadlineListView);
 
         Bundle extra = getIntent().getBundleExtra("extra");
-        foodNames = (ArrayList<String>)extra.getSerializable("FoodNames");
-        expiryDates = (ArrayList<String>)extra.getSerializable("ExpiryDates");
-        expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");
+        foodNames = (ArrayList<String>) extra.getSerializable("FoodNames");
+        expiryDates = (ArrayList<String>) extra.getSerializable("ExpiryDates");
+        expirationDeadlines = (ArrayList<String>) extra.getSerializable("ExpirationDeadlines");
 
         ArrayAdapter<String> nameAdapter = new ArrayAdapter<String>(getBaseContext(),
                 android.R.layout.simple_list_item_1, foodNames);
@@ -78,85 +78,8 @@ public class MainMenu extends Activity {
         ArrayAdapter<String> deadlineAdapter = new ArrayAdapter<String>(getBaseContext(),
                 android.R.layout.simple_list_item_1, expirationDeadlines);
 
-        expiredFoodListView.setAdapter( nameAdapter );
-        expiredDateListView.setAdapter( dateAdapter );
-        expirationDeadlineListView.setAdapter( deadlineAdapter );
-
-       /* System.out.println( almostExpired() );
-
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.drawable.notification_icon)
-                        .setContentTitle("My notification")
-                        .setContentText("Hello World!");
-
-        Intent resultIntent = new Intent(this, MainMenu.class);
-        // Because clicking the notification opens a new ("special") activity, there's
-        // no need to create an artificial back stack.
-        PendingIntent resultPendingIntent =
-                PendingIntent.getActivity(
-                        this,
-                        0,
-                        resultIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
-
-        mBuilder.setContentIntent(resultPendingIntent);
-
-        // Sets an ID for the notification
-        int mNotificationId = 001;
-// Gets an instance of the NotificationManager service
-        NotificationManager mNotifyMgr =
-                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-// Builds the notification and issues it.
-        mNotifyMgr.notify(mNotificationId, mBuilder.build());
-
-       scheduleNotification( this, 3000, 0);
-       System.out.println("DONE");
+        expiredFoodListView.setAdapter(nameAdapter);
+        expiredDateListView.setAdapter(dateAdapter);
+        expirationDeadlineListView.setAdapter(deadlineAdapter);
     }
-
-
-
-    private boolean almostExpired(){
-
-        return (getExpiryDate(expiryDate).getTime() - today.getTime()) / 3600 <= 1;
-    }
-
-
-    public void scheduleNotification(Context context, long delay, int notificationId) {//delay is after how much time(in millis) from current time you want to schedule the notification
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
-                .setContentTitle( "My title")
-                .setContentText( "Almost Expired!")
-                .setAutoCancel(true)
-                .setSmallIcon(R.drawable.notification_icon)
-                .setLargeIcon(((BitmapDrawable) context.getResources().getDrawable(R.drawable.notification_icon)).getBitmap())
-                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
-
-        Intent intent = new Intent(context, MainMenu.class);
-        PendingIntent activity = PendingIntent.getActivity(context, notificationId, intent, PendingIntent.FLAG_CANCEL_CURRENT);
-        builder.setContentIntent(activity);
-
-        Notification notification = builder.build();
-
-        Intent notificationIntent = new Intent(context, MyNotificationPublisher.class);
-        notificationIntent.putExtra(MyNotificationPublisher.NOTIFICATION_ID, notificationId);
-        notificationIntent.putExtra(MyNotificationPublisher.NOTIFICATION, notification);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, notificationId, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-
-        long futureInMillis = SystemClock.elapsedRealtime() + delay;
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureInMillis, pendingIntent);*/
-    }
-/*
-    @Override
-    public void onBackPressed() {
-        Intent returnIntent = new Intent();
-        Bundle extra = new Bundle();
-        extra.putSerializable("FoodNames", foodNames);
-        extra.putSerializable("ExpiryDates", expiryDates);
-        extra.putSerializable("ExpirationDeadlines",expirationDeadlines);
-        returnIntent.putExtra( "extra", extra);
-        setResult(CURRENT_FOOD_LIST_REQUEST, returnIntent);
-        finish();
-    }*/
 }

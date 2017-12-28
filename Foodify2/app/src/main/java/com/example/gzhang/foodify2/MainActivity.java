@@ -1,5 +1,7 @@
 package com.example.gzhang.foodify2;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
@@ -112,10 +114,10 @@ public class MainActivity extends AppCompatActivity {
                 extra.putSerializable("ExpiryDates", expiryDates);
 
                 Intent storageOptionsIntent = new Intent(getBaseContext(), FoodStorageOptions.class);
-                storageOptionsIntent.putExtra("FoodName", header.elems.get(itemPosition));
+                storageOptionsIntent.putExtra("FoodName", headers[0].elems.get(itemPosition));
                 storageOptionsIntent.putExtra("extra", extra);
 
-                foodNames.add(header.elems.get(itemPosition));
+                foodNames.add(headers[0].elems.get(itemPosition));
 
                 startActivityForResult(storageOptionsIntent, STORAGE_OPTIONS_REQUEST);
             }
@@ -159,8 +161,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            System.out.println(eatbydateLink);
-
             Document doc = null;
 
             //get page
@@ -181,8 +181,6 @@ public class MainActivity extends AppCompatActivity {
 
                     headers[i] = new Header();
                     headers[i].headerName = stringHeader;
-
-                    System.out.println(stringHeader);
                 }
 
                 //get text in elmeent
@@ -192,16 +190,13 @@ public class MainActivity extends AppCompatActivity {
 
                     if( tds.get(0).text().contains("last")) {
                         headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
-                        System.out.println(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("last")));
                     }
                     else if( tds.get(0).text().contains("lasts")){
                         headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
-                        System.out.println(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
                     }
 
                     for (int j = 1; j < tds.size(); j++) {
                         headers[j].elems.add(tds.get(j).text());
-                        System.out.println(tds.get(j).text());
                     }
                 }
             } catch (IOException ioe) {
@@ -217,7 +212,6 @@ public class MainActivity extends AppCompatActivity {
 
             for( int i = 0; i < firstHeaderElems.size(); i = i + 1 ){
                 foodTypes[ i ] = firstHeaderElems.get(i);
-                System.out.println("Food Types: " + foodTypes[i]);
             }
 
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(getBaseContext(),
@@ -228,8 +222,6 @@ public class MainActivity extends AppCompatActivity {
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAMERA_PIC_REQUEST) {
-
-            System.out.println( "HERE NOW " );
 
             Bitmap image = (Bitmap) data.getExtras().get("data");
             // do whatever you want with the image now
@@ -244,7 +236,13 @@ public class MainActivity extends AppCompatActivity {
 
             String expiryDate = data.getStringExtra("ExpiryDate");
             expiryDates.add(expiryDate);
-            expirationDeadlines.add(getExpirationDeadline(expiryDate));
+
+            Date expirationDeadline = getExpirationDeadline(expiryDate);
+
+            expirationDeadlines.add(new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
+
+            //create notification
+            createNotification(expirationDeadline);
 
             Intent currentFoodListIntent = new Intent(getBaseContext(), MainMenu.class);
             Bundle extra = new Bundle();
@@ -296,7 +294,6 @@ public class MainActivity extends AppCompatActivity {
                     for (int j = 0; j < concepts.size(); j++) {
 
                         resultList.add(concepts.get(j).name());
-                        System.out.println(concepts.get(j).name());
                     }
                 }
             }
@@ -327,24 +324,8 @@ public class MainActivity extends AppCompatActivity {
         return 7 * numWeeks;
     }
 
-    private String getExpirationDeadline(String timeString) {
-/*
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-        Calendar c = Calendar.getInstance();
-        c.setTime(new Date());
+    private Date getExpirationDeadline(String timeString) {
 
-        expiryDateItem = sdf.format(getExpiryDate(expiryDate).getTime());
-
-        expiredDates = new ArrayList<String>();
-        expiredDates.add( expiryDate + " | " + expiryDateItem );
-
-        efs = new ArrayList<ExpiredFoods>();
-        efs.add( new ExpiredFoods(headerName,getExpiryDate(expiryDate)));
-
-        //get today
-        today = c.getTime();
-
-*/
         int numUnits = 0;
 
         if( timeString.indexOf('-') != -1 ) {
@@ -358,23 +339,31 @@ public class MainActivity extends AppCompatActivity {
         c.setTime(new Date()); // Now use today date.
 
         int time = 0;
-        if( timeString.contains("Days")){
+        if( timeString.contains("Day")){
             time = numUnits;
         }
-        else if( timeString.contains("Weeks")){
+        else if( timeString.contains("Week")){
             time = weeksToDays(numUnits);
         }
-        else if( timeString.contains("Months")){
+        else if( timeString.contains("Month")){
             time = monthsToDays(numUnits);
         }
-        else if( timeString.contains("Years")){
+        else if( timeString.contains("Year")){
             time = yearsToDays(numUnits);
         }
 
         c.add(Calendar.DATE, time);
 
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        return c.getTime();
+    }
 
-        return sdf.format(c.getTime());
+
+    private void createNotification(Date expirationDeadline) {
+
+        Intent i = new Intent(MainActivity.this, ExpirationNotification.class);
+        PendingIntent pi = PendingIntent.getBroadcast(getApplicationContext(), 3, i, 0);
+        AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
+        am.set(AlarmManager.RTC_WAKEUP, expirationDeadline.getTime(), pi);
+
     }
 }
