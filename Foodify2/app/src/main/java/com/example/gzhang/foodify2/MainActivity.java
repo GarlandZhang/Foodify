@@ -423,11 +423,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void createNotification(Date expirationDeadline, String foodName) {
 
-        Intent i = new Intent(MainActivity.this, ExpirationNotification.class);
-        i.putExtra("FoodName", foodName);
-        PendingIntent pi = PendingIntent.getBroadcast(getApplicationContext(), 3, i, 0);
+        Intent i = new Intent(getApplicationContext(), ExpirationNotification.class);
+        Bundle extra = new Bundle();
+        extra.putString("FoodName", foodName);
+        i.putExtra("extra", extra);
+        System.out.println("In MainActivity: " + i.getStringExtra("FoodName"));
+        PendingIntent pi = PendingIntent.getBroadcast(getApplicationContext(), 3, i, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
-        am.set(AlarmManager.RTC_WAKEUP, expirationDeadline.getTime(), pi);
+        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+2000, pi);
 
     }
 }

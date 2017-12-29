@@ -24,7 +24,7 @@
             android:id="@+id/foodInput"
             android:layout_width="150dp"
             android:layout_height="wrap_content"
-            android:text="banana"
+            android:hint="Enter food"
             tools:layout_editor_absoluteX="67dp"
             tools:layout_editor_absoluteY="0dp" />
 

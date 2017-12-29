@@ -4,6 +4,7 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Vibrator;
 import android.widget.Toast;
 
@@ -14,9 +15,11 @@ import android.widget.Toast;
 public class ExpirationNotification extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        Toast.makeText(context, "EXPIRATION DATE ON: " + intent.getStringExtra("FoodName").toUpperCase(), Toast.LENGTH_LONG).show();
+        Bundle extra = intent.getBundleExtra("extra");
+        String foodName = extra.getString("FoodName");
+        System.out.println("In ExpirationNotification: " + foodName);
+        Toast.makeText(context, "YOUR " + foodName.toUpperCase() + " EXPIRED!", Toast.LENGTH_LONG).show();
         Vibrator v = (Vibrator)context.getSystemService(context.VIBRATOR_SERVICE);
         v.vibrate(1000);
-
     }
 }
