@@ -18,7 +18,7 @@ public class ExpirationNotification extends BroadcastReceiver {
         Bundle extra = intent.getBundleExtra("extra");
         String foodName = extra.getString("FoodName");
         System.out.println("In ExpirationNotification: " + foodName);
-        Toast.makeText(context, "YOUR " + foodName.toUpperCase() + " EXPIRED!", Toast.LENGTH_LONG).show();
+        Toast.makeText(context, "YOUR " + foodName.toUpperCase() + " EXPIRES IN 1 DAY!", Toast.LENGTH_LONG).show();
         Vibrator v = (Vibrator)context.getSystemService(context.VIBRATOR_SERVICE);
         v.vibrate(1000);
     }

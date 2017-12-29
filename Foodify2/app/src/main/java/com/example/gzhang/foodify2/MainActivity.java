@@ -430,7 +430,8 @@ public class MainActivity extends AppCompatActivity {
         System.out.println("In MainActivity: " + i.getStringExtra("FoodName"));
         PendingIntent pi = PendingIntent.getBroadcast(getApplicationContext(), 3, i, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
-        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+2000, pi);
+        //am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+2000, pi);
+        am.set(AlarmManager.RTC_WAKEUP, expirationDeadline.getTime()-86400000, pi);
 
     }
 }
