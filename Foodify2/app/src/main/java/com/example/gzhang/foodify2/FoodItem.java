@@ -3,6 +3,9 @@ package com.example.gzhang.foodify2;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * Created by GZhang on 2017-12-31.
  */
@@ -60,5 +63,16 @@ public class FoodItem implements Parcelable {
 
     public void setExpiryDate(String expiryDate){
         this.expiryDate = expiryDate;
+    }
+
+    public JSONObject getJSONObject(){
+        JSONObject obj = new JSONObject();
+        try{
+            obj.put("name", name);
+            obj.put("expiryDate", expiryDate);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return obj;
     }
 }

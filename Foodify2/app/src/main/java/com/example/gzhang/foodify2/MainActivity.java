@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -141,18 +143,36 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //save data
-        /*if(savedInstanceState != null){
-            Bundle extra = savedInstanceState.getBundle("extra");
+        if(savedInstanceState != null){
+        /*    Bundle extra = savedInstanceState.getBundle("extra");
             foodNames = (ArrayList<String>)extra.getSerializable("FoodNames");
             expiryDates = (ArrayList<String>)extra.getSerializable("ExpiryDates");
-            expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");
-        }*/
+            expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");*/
 
-        if(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null) != null) {
+
+        }
+
+        if(getPreferences(Context.MODE_PRIVATE).getStringSet("FoodSet", null) != null) {
 
             /*foodNames.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("FoodNames", null));
             expiryDates.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpiryDates", null));
             expirationDeadlines.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null));*/
+
+            Set<String> foodSet = getPreferences(Context.MODE_PRIVATE).getStringSet("FoodSet", null);
+
+            for(String foodItemStr : foodSet){
+                try{
+                    JSONObject jsonObject = new JSONObject(foodItemStr);
+
+                    String name = jsonObject.getString("name");
+                    String expiryDate = jsonObject.getString("expiryDate");
+
+                    FoodItem foodItem = new FoodItem(name, expiryDate);
+                    foods.add(foodItem);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -178,6 +198,16 @@ public class MainActivity extends AppCompatActivity {
         editor.putStringSet("ExpirationDeadlines", expirationDeadlinesSet);
 
         editor.commit();*/
+
+        SharedPreferences.Editor editor = getPreferences(Context.MODE_PRIVATE).edit();
+
+        Set<String> foodSet= new HashSet<String>();
+        for(int i = 0; i < foods.size(); i++){
+            foodSet.add(foods.get(i).getJSONObject().toString());
+        }
+
+        editor.putStringSet("FoodSet", foodSet);
+        editor.commit();
     }
 
     @Override
