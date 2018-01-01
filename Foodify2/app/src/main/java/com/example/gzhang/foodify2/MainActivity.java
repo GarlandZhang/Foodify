@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
+import android.os.Parcelable;
 import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -53,10 +54,12 @@ public class MainActivity extends AppCompatActivity {
         FOOD_OPTIONS_REQUEST = 1,
         STORAGE_OPTIONS_REQUEST = 2,
         CURRENT_FOOD_LIST_REQUEST = 3;
-
+/*
     ArrayList<String> foodNames,
                       expiryDates,
                       expirationDeadlines;
+  */
+    ArrayList<FoodItem> foods;
 
     public class Header{
 
@@ -73,10 +76,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+/*
         foodNames = new ArrayList<String>();
         expiryDates = new ArrayList<String>();
-        expirationDeadlines = new ArrayList<String>();
+        expirationDeadlines = new ArrayList<String>();*/
+        foods = new ArrayList<FoodItem>();
 
         mEdit = (EditText)findViewById(R.id.foodInput);
         mButton = (Button)findViewById(R.id.submitButton);
@@ -145,24 +149,25 @@ public class MainActivity extends AppCompatActivity {
         }*/
 
         if(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null) != null) {
-            foodNames.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("FoodNames", null));
+
+            /*foodNames.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("FoodNames", null));
             expiryDates.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpiryDates", null));
-            expirationDeadlines.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null));
+            expirationDeadlines.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null));*/
         }
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
-
+/*
         outState.putSerializable("FoodNames", foodNames);
         outState.putSerializable("ExpiryDates", expiryDates);
         outState.putSerializable("ExpirationDeadlines", expirationDeadlines);
-
+*/
         super.onSaveInstanceState(outState, outPersistentState);
     }
 
     private void saveSettings(){
-        Set<String> foodNamesSet = new HashSet<String>(foodNames);
+        /*Set<String> foodNamesSet = new HashSet<String>(foodNames);
         Set<String> expiryDatesSet = new HashSet<String>(expiryDates);
         Set<String> expirationDeadlinesSet = new HashSet<String>(expirationDeadlines);
 
@@ -172,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
         editor.putStringSet("ExpiryDates", expiryDatesSet);
         editor.putStringSet("ExpirationDeadlines", expirationDeadlinesSet);
 
-        editor.commit();
+        editor.commit();*/
     }
 
     @Override
@@ -291,14 +296,18 @@ public class MainActivity extends AppCompatActivity {
         else if(requestCode == STORAGE_OPTIONS_REQUEST){
 
             String expiryDate = data.getStringExtra("ExpiryDate");
-            expiryDates.add(expiryDate);
+            //expiryDates.add(expiryDate);
 
             Date expirationDeadline = getExpirationDeadline(expiryDate);
 
-            expirationDeadlines.add(new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
+            //expirationDeadlines.add(new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
 
             String foodName = data.getStringExtra("FoodName");
-            foodNames.add(foodName);
+            //foodNames.add(foodName);
+
+            FoodItem foodItem = new FoodItem(foodName, new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
+            foods.add(foodItem);
+
             //create notification
             createNotification(expirationDeadline, foodName);
 
@@ -317,11 +326,13 @@ public class MainActivity extends AppCompatActivity {
     private void goToCurrentList() {
         Intent currentFoodListIntent = new Intent(getBaseContext(), MainMenu.class);
         Bundle extra = new Bundle();
-        extra.putSerializable("FoodNames", foodNames);
+       /* extra.putSerializable("FoodNames", foodNames);
         extra.putSerializable("ExpiryDates", expiryDates);
         extra.putSerializable("ExpirationDeadlines",expirationDeadlines);
-
         currentFoodListIntent.putExtra("extra", extra);
+*/
+        currentFoodListIntent.putParcelableArrayListExtra("foods", foods);
+
         startActivity(currentFoodListIntent);
     }
 
@@ -414,6 +425,9 @@ public class MainActivity extends AppCompatActivity {
         else if( timeString.contains("Year")){
             time = yearsToDays(numUnits);
         }
+        else if(timeString.contains("Same day")){
+            time = 0;
+        }
 
         c.add(Calendar.DATE, time);
 
@@ -427,10 +441,8 @@ public class MainActivity extends AppCompatActivity {
         Bundle extra = new Bundle();
         extra.putString("FoodName", foodName);
         i.putExtra("extra", extra);
-        System.out.println("In MainActivity: " + i.getStringExtra("FoodName"));
         PendingIntent pi = PendingIntent.getBroadcast(getApplicationContext(), 3, i, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
-        //am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+2000, pi);
         am.set(AlarmManager.RTC_WAKEUP, expirationDeadline.getTime()-86400000, pi);
 
     }

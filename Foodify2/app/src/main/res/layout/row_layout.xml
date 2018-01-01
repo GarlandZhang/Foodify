@@ -7,16 +7,19 @@
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/foodImage"/>
+        android:adjustViewBounds="true"
+        android:maxWidth="20dip"
+        android:scaleType="fitXY"
+        android:id="@+id/deleteImageView" />
+
+    <TextView
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/foodNameTextView"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/foodType"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/foodExpiryDate"/>
+        android:id="@+id/foodExpiryDateTextView"/>
 
 </LinearLayout>
