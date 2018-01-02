@@ -4,8 +4,10 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.ArrayList;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.widget.TextView;
@@ -14,6 +16,8 @@ public class ResultsActivity extends Activity {
 
     String outputPath;
     TextView tv;
+
+    private int RECEIPT_FOOD_LIST_REQUEST = 5;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +57,7 @@ public class ResultsActivity extends Activity {
             }
 
             displayMessage(contents.toString());
-            System.out.println(contents.toString());
+
         } catch (Exception e) {
             displayMessage("Error: " + e.getMessage());
         }
@@ -68,6 +72,37 @@ public class ResultsActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         return true;
+    }
+
+    public void returnResults(Boolean success) {
+        if (!success)
+        return;
+        try {
+            StringBuffer contents = new StringBuffer();
+
+            FileInputStream fis = openFileInput(outputPath);
+
+            ArrayList<String> receiptFoods = new ArrayList<String>();
+            try {
+                Reader reader = new InputStreamReader(fis, "UTF-8");
+                BufferedReader bufReader = new BufferedReader(reader);
+                String text = null;
+                while ((text = bufReader.readLine()) != null) {
+                    //contents.append(text).append(System.getProperty("line.separator"));
+                    receiptFoods.add(text.substring(0, text.indexOf(' ')));
+                }
+            } finally {
+                fis.close();
+            }
+
+            Intent returnIntent = new Intent();
+            returnIntent.putStringArrayListExtra("receiptFoods", receiptFoods);
+            setResult(RECEIPT_FOOD_LIST_REQUEST, returnIntent);
+            finish();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     class MessagePoster implements Runnable {

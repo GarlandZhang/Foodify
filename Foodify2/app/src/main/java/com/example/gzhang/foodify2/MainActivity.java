@@ -69,7 +69,8 @@ public class MainActivity extends AppCompatActivity {
         FOOD_OPTIONS_REQUEST = 1,
         STORAGE_OPTIONS_REQUEST = 2,
         CURRENT_FOOD_LIST_REQUEST = 3,
-        SELECT_PICTURE = 4;
+        SELECT_PICTURE = 4,
+        RECEIPT_FOOD_LIST_REQUEST = 5;
 /*
     ArrayList<String> foodNames,
                       expiryDates,
@@ -321,8 +322,8 @@ public class MainActivity extends AppCompatActivity {
                         headers[j].elems.add(tds.get(j).text());
                     }
                 }
-            } catch (IOException ioe) {
-                Toast.makeText(getApplicationContext(), foodInput + " does not exist", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
         }
@@ -535,8 +536,30 @@ public class MainActivity extends AppCompatActivity {
             Intent results = new Intent( this, ResultsActivity.class);
             results.putExtra("IMAGE_PATH", imageFilePath);
             results.putExtra("RESULT_PATH", "result.txt");
-            startActivity(results);
+            startActivityForResult(results, RECEIPT_FOOD_LIST_REQUEST);
         }
+        else if(requestCode == RECEIPT_FOOD_LIST_REQUEST){
+
+            ArrayList<String> receiptFoods = data.getStringArrayListExtra("receiptFoods");
+            receiptFoods = filterFoods(receiptFoods);
+            for(int i = 0; i < receiptFoods.size(); i++){
+                System.out.println(receiptFoods.get(i));
+            }
+        }
+    }
+
+    private ArrayList<String> filterFoods(ArrayList<String> receiptFoods) {
+        ArrayList<String> filteredFoods = new ArrayList<String>();
+        for(int i = 0; i < receiptFoods.size(); i++){
+            if(isFood(receiptFoods.get(i))){
+                filteredFoods.add(receiptFoods.get(i));
+            }
+        }
+        return filteredFoods;
+    }
+
+    private boolean isFood(String s) {
+        return true;
     }
 
     private void goToCurrentList() {

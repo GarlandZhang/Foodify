@@ -3,6 +3,7 @@ package com.example.gzhang.foodify2;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ListView;
 
 import java.util.ArrayList;
@@ -74,5 +75,9 @@ public class MainMenu extends Activity {
            FoodAdapter foodAdapter = new FoodAdapter(this, foods);
            foodItemsListView.setAdapter( foodAdapter );
         }
+    }
+
+    public void deleteRow(View view) {
+
     }
 }

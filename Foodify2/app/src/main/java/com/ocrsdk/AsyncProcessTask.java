@@ -29,7 +29,9 @@ public class AsyncProcessTask extends AsyncTask<String, String, Boolean> {
             dialog.dismiss();
         }
 
-        activity.updateResults(result);
+        activity.returnResults(result);
+
+        //activity.updateResults(result);
     }
 
     @Override
