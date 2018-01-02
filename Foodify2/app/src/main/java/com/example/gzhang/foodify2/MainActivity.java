@@ -3,12 +3,17 @@ package com.example.gzhang.foodify2;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -19,7 +24,11 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.ocrsdk.*;
+
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,6 +40,7 @@ import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -43,11 +53,14 @@ import clarifai2.dto.input.ClarifaiImage;
 import clarifai2.dto.model.output.ClarifaiOutput;
 import clarifai2.dto.prediction.Concept;
 
+
+
 public class MainActivity extends AppCompatActivity {
 
     Button mButton,
             camButton,
-            currentListButton;
+            currentListButton,
+            receiptButton;
     EditText mEdit;
     Header[] headers;
     ListView mListView;
@@ -55,7 +68,8 @@ public class MainActivity extends AppCompatActivity {
     int CAMERA_PIC_REQUEST = 0,
         FOOD_OPTIONS_REQUEST = 1,
         STORAGE_OPTIONS_REQUEST = 2,
-        CURRENT_FOOD_LIST_REQUEST = 3;
+        CURRENT_FOOD_LIST_REQUEST = 3,
+        SELECT_PICTURE = 4;
 /*
     ArrayList<String> foodNames,
                       expiryDates,
@@ -88,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
         mButton = (Button)findViewById(R.id.submitButton);
         camButton = (Button)findViewById(R.id.cameraButton);
         currentListButton = (Button)findViewById(R.id.currentListButton);
+        receiptButton = (Button) findViewById(R.id.receiptButton);
 
         mButton.setOnClickListener(
                 new View.OnClickListener(){
@@ -111,6 +126,14 @@ public class MainActivity extends AppCompatActivity {
                 new View.OnClickListener(){
                     public void onClick(View view){
                         goToCurrentList();
+                    }
+                }
+        );
+
+        receiptButton.setOnClickListener(
+                new View.OnClickListener(){
+                    public void onClick(View view){
+                        captureImageFromSdCard( null );
                     }
                 }
         );
@@ -174,6 +197,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+
+    public void captureImageFromSdCard( View view ) {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+
+        startActivityForResult(intent, SELECT_PICTURE);
     }
 
     @Override
@@ -311,59 +342,84 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CAMERA_PIC_REQUEST) {
+    private class ReceiptRecognitionRetriever extends AsyncTask<String,String,Boolean>{
 
-            Bitmap image = (Bitmap) data.getExtras().get("data");
-            // do whatever you want with the image now
+        @Override
+        protected Boolean doInBackground(String... strings) {
 
-            new RetrievePredictionsTask().execute( image );
+            String inputFile = strings[0];
+            String outputFile = strings[1];
+
+            try {
+                Client restClient = new Client();
+
+                restClient.applicationId = "StillFresh";
+                restClient.password = "mV3cmXCue7izcHAfX2OR8+H7";
+
+
+                publishProgress( "Uploading image...");
+
+                String language = "English"; // Comma-separated list: Japanese,English or German,French,Spanish etc.
+
+                ReceiptSettings receiptSettings = new ReceiptSettings();
+                receiptSettings.setReceiptCountry("Usa");
+
+                publishProgress("Uploading..");
+
+                // If you want to process business cards, uncomment this
+			/*
+			BusCardSettings busCardSettings = new BusCardSettings();
+			busCardSettings.setLanguage(language);
+			busCardSettings.setOutputFormat(BusCardSettings.OutputFormat.xml);
+			Task task = restClient.processBusinessCard(filePath, busCardSettings);
+			*/
+                Task task = restClient.processReceipt(inputFile, receiptSettings);
+
+                while( task.isTaskActive() ) {
+                    // Note: it's recommended that your application waits
+                    // at least 2 seconds before making the first getTaskStatus request
+                    // and also between such requests for the same task.
+                    // Making requests more often will not improve your application performance.
+                    // Note: if your application queues several files and waits for them
+                    // it's recommended that you use listFinishedTasks instead (which is described
+                    // at http://ocrsdk.com/documentation/apireference/listFinishedTasks/).
+
+                    Thread.sleep(5000);
+                    publishProgress( "Waiting.." );
+                    System.out.println("Waiting");
+                    task = restClient.getTaskStatus(task.Id);
+                }
+
+                System.out.println("In between...");
+
+                if( task.Status == Task.TaskStatus.Completed ) {
+                    System.out.println("Downloading...");
+                    publishProgress( "Downloading.." );
+                    FileOutputStream fos = openFileOutput(outputFile,MODE_WORLD_READABLE);
+                    System.out.println("Still Downloading...");
+                    try {
+                        restClient.downloadResult(task, fos);
+                    } finally {
+                        fos.close();
+                    }
+
+                    publishProgress( "Ready" );
+                    System.out.println("Ready");
+                } else if( task.Status == Task.TaskStatus.NotEnoughCredits ) {
+                    System.out.println("ERROR");
+                    throw new Exception( "Not enough credits to process task. Add more pages to your application's account." );
+                } else {
+                    System.out.println("ERROR #2");
+                    throw new Exception( "Task failed" );
+                }
+
+                return true;
+            } catch (Exception e) {
+                final String message = "Error: " + e.getMessage();
+                publishProgress( message);
+                return false;
+            }
         }
-        else if(requestCode == FOOD_OPTIONS_REQUEST){
-
-            mEdit.setText(data.getStringExtra("FoodName"));
-        }
-        else if(requestCode == STORAGE_OPTIONS_REQUEST){
-
-            String expiryDate = data.getStringExtra("ExpiryDate");
-            //expiryDates.add(expiryDate);
-
-            Date expirationDeadline = getExpirationDeadline(expiryDate);
-
-            //expirationDeadlines.add(new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
-
-            String foodName = data.getStringExtra("FoodName");
-            //foodNames.add(foodName);
-
-            FoodItem foodItem = new FoodItem(foodName, new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
-            foods.add(foodItem);
-
-            //create notification
-            createNotification(expirationDeadline, foodName);
-
-            goToCurrentList();
-
-            //startActivityForResult(currentFoodListIntent, CURRENT_FOOD_LIST_REQUEST);
-        }
-        else if(requestCode == CURRENT_FOOD_LIST_REQUEST){
-            /*Bundle extra = getIntent().getBundleExtra("extra");
-            foodNames = (ArrayList<String>)extra.getSerializable("FoodNames");
-            expiryDates = (ArrayList<String>)extra.getSerializable("ExpiryDates");
-            expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");*/
-        }
-    }
-
-    private void goToCurrentList() {
-        Intent currentFoodListIntent = new Intent(getBaseContext(), MainMenu.class);
-        Bundle extra = new Bundle();
-       /* extra.putSerializable("FoodNames", foodNames);
-        extra.putSerializable("ExpiryDates", expiryDates);
-        extra.putSerializable("ExpirationDeadlines",expirationDeadlines);
-        currentFoodListIntent.putExtra("extra", extra);
-*/
-        currentFoodListIntent.putParcelableArrayListExtra("foods", foods);
-
-        startActivity(currentFoodListIntent);
     }
 
     public class RetrievePredictionsTask extends AsyncTask<Bitmap, Void, ArrayList<String>>{
@@ -428,12 +484,82 @@ public class MainActivity extends AppCompatActivity {
         return 7 * numWeeks;
     }
 
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CAMERA_PIC_REQUEST) {
+
+            Bitmap image = (Bitmap) data.getExtras().get("data");
+            // do whatever you want with the image now
+
+            new RetrievePredictionsTask().execute( image );
+        }
+        else if(requestCode == FOOD_OPTIONS_REQUEST){
+
+            mEdit.setText(data.getStringExtra("FoodName"));
+        }
+        else if(requestCode == STORAGE_OPTIONS_REQUEST){
+
+            String expiryDate = data.getStringExtra("ExpiryDate");
+            //expiryDates.add(expiryDate);
+
+            Date expirationDeadline = getExpirationDeadline(expiryDate);
+
+            //expirationDeadlines.add(new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
+
+            String foodName = data.getStringExtra("FoodName");
+            //foodNames.add(foodName);
+
+            FoodItem foodItem = new FoodItem(foodName, new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
+            foods.add(foodItem);
+
+            //create notification
+            createNotification(expirationDeadline, foodName);
+
+            goToCurrentList();
+
+            //startActivityForResult(currentFoodListIntent, CURRENT_FOOD_LIST_REQUEST);
+        }
+        else if(requestCode == CURRENT_FOOD_LIST_REQUEST){
+            /*Bundle extra = getIntent().getBundleExtra("extra");
+            foodNames = (ArrayList<String>)extra.getSerializable("FoodNames");
+            expiryDates = (ArrayList<String>)extra.getSerializable("ExpiryDates");
+            expirationDeadlines = (ArrayList<String>)extra.getSerializable("ExpirationDeadlines");*/
+        }
+        else if(requestCode == SELECT_PICTURE){
+            Uri imageUri = data.getData();
+
+            String[] projection = { MediaStore.Images.Media.DATA };
+            Cursor cur = managedQuery(imageUri, projection, null, null, null);
+            cur.moveToFirst();
+            String imageFilePath = cur.getString(cur.getColumnIndex(MediaStore.Images.Media.DATA));
+
+            Intent results = new Intent( this, ResultsActivity.class);
+            results.putExtra("IMAGE_PATH", imageFilePath);
+            results.putExtra("RESULT_PATH", "result.txt");
+            startActivity(results);
+        }
+    }
+
+    private void goToCurrentList() {
+        Intent currentFoodListIntent = new Intent(getBaseContext(), MainMenu.class);
+        Bundle extra = new Bundle();
+       /* extra.putSerializable("FoodNames", foodNames);
+        extra.putSerializable("ExpiryDates", expiryDates);
+        extra.putSerializable("ExpirationDeadlines",expirationDeadlines);
+        currentFoodListIntent.putExtra("extra", extra);
+*/
+        currentFoodListIntent.putParcelableArrayListExtra("foods", foods);
+
+        startActivity(currentFoodListIntent);
+    }
+
     private Date getExpirationDeadline(String timeString) {
 
         int numUnits = 0;
 
         if( timeString.indexOf('-') != -1 ) {
-            numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf('-')));
+            if(!timeString.equals("--")){
+                numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf('-')));
+            }
         }
         else{
             numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf(' ' )));
@@ -442,7 +568,7 @@ public class MainActivity extends AppCompatActivity {
         Calendar c = Calendar.getInstance();
         c.setTime(new Date()); // Now use today date.
 
-        int time = 0;
+        int time;
         if( timeString.contains("Day")){
             time = numUnits;
         }
@@ -456,6 +582,9 @@ public class MainActivity extends AppCompatActivity {
             time = yearsToDays(numUnits);
         }
         else if(timeString.contains("Same day")){
+            time = 0;
+        }
+        else{
             time = 0;
         }
 
