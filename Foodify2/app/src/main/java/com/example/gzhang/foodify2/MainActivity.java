@@ -317,6 +317,9 @@ public class MainActivity extends AppCompatActivity {
                     else if( tds.get(0).text().contains("lasts")){
                         headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
                     }
+                    else{
+                        headers[0].elems.add("NULL(PLACEHOLDER)");
+                    }
 
                     for (int j = 1; j < tds.size(); j++) {
                         headers[j].elems.add(tds.get(j).text());
@@ -502,6 +505,8 @@ public class MainActivity extends AppCompatActivity {
             String expiryDate = data.getStringExtra("ExpiryDate");
             //expiryDates.add(expiryDate);
 
+            System.out.println("Expiry date: " + expiryDate);
+
             Date expirationDeadline = getExpirationDeadline(expiryDate);
 
             //expirationDeadlines.add(new SimpleDateFormat("dd/MM/yyyy").format(expirationDeadline));
@@ -579,14 +584,20 @@ public class MainActivity extends AppCompatActivity {
 
         int numUnits = 0;
 
-        if( timeString.indexOf('-') != -1 ) {
-            if(!timeString.equals("--")){
-                numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf('-')));
+        if(timeString.length() > 0){
+            if("0123456789".contains(timeString.substring(0, 1))){
+                if( timeString.indexOf('-') != -1 ) {
+                    if(!timeString.equals("--")){
+                        numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf('-')));
+                    }
+                }
+                else{
+                    numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf(' ' )));
+                }
             }
         }
-        else{
-            numUnits = Integer.parseInt(timeString.substring(0, timeString.indexOf(' ' )));
-        }
+
+
 
         Calendar c = Calendar.getInstance();
         c.setTime(new Date()); // Now use today date.
