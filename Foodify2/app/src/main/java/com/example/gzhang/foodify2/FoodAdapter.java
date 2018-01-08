@@ -38,7 +38,7 @@ public class FoodAdapter extends BaseAdapter {
 
     @Override
     public Object getItem(int i) {
-        return null;
+        return foods.get(i);
     }
 
     @Override

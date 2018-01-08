@@ -37,6 +37,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -53,18 +54,17 @@ import clarifai2.dto.input.ClarifaiImage;
 import clarifai2.dto.model.output.ClarifaiOutput;
 import clarifai2.dto.prediction.Concept;
 
-
-
 public class MainActivity extends AppCompatActivity {
 
-    Button mButton,
+    Button submitButton,
             camButton,
             currentListButton,
             receiptButton;
-    EditText mEdit;
+    EditText foodInputEditText;
     Header[] headers;
-    ListView mListView;
+    ListView foodOptionsListView;
 
+    //the request ids for different activity responses
     int CAMERA_PIC_REQUEST = 0,
         FOOD_OPTIONS_REQUEST = 1,
         STORAGE_OPTIONS_REQUEST = 2,
@@ -76,12 +76,13 @@ public class MainActivity extends AppCompatActivity {
                       expiryDates,
                       expirationDeadlines;
   */
-    ArrayList<FoodItem> foods;
+    ArrayList<FoodItem> foods; //holds user's selected food
 
+    //holds a column of data from the table for the food's longevity
     public class Header{
 
-        String headerName;
-        ArrayList<String> elems;
+        String headerName; //name of the header of the column
+        ArrayList<String> elems; //stores all the life expectancies for different food storage options
 
         public Header() {
             headerName = "";
@@ -97,19 +98,20 @@ public class MainActivity extends AppCompatActivity {
         foodNames = new ArrayList<String>();
         expiryDates = new ArrayList<String>();
         expirationDeadlines = new ArrayList<String>();*/
+
         foods = new ArrayList<FoodItem>();
 
-        mEdit = (EditText)findViewById(R.id.foodInput);
-        mButton = (Button)findViewById(R.id.submitButton);
+        foodInputEditText = (EditText)findViewById(R.id.foodInput);
+        submitButton = (Button)findViewById(R.id.submitButton);
         camButton = (Button)findViewById(R.id.cameraButton);
         currentListButton = (Button)findViewById(R.id.currentListButton);
         receiptButton = (Button) findViewById(R.id.receiptButton);
 
-        mButton.setOnClickListener(
+        submitButton.setOnClickListener(
                 new View.OnClickListener(){
                     public void onClick(View view){
-                        String foodInput = mEdit.getText().toString();
-                        new ExpirationRetriever().execute(foodInput);
+                        String foodInput = foodInputEditText.getText().toString();
+                        new ExpirationRetriever(true).execute(foodInput);
                     }
                 }
         );
@@ -139,12 +141,11 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
-        mListView = (ListView) findViewById(R.id.listView);
+        foodOptionsListView = (ListView) findViewById(R.id.listView);
 
-        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        foodOptionsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView listView, View itemView, int itemPosition, long itemId)
             {
-                Header header = headers[itemPosition];
 
                 ArrayList<String> storageOptions = new ArrayList<String>(),
                 expiryDates = new ArrayList<String>();
@@ -176,14 +177,18 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        if(getPreferences(Context.MODE_PRIVATE).getStringSet("FoodSet", null) != null) {
+        /*foodNames.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("FoodNames", null));
+        expiryDates.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpiryDates", null));
+        expirationDeadlines.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null));*/
 
-            /*foodNames.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("FoodNames", null));
-            expiryDates.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpiryDates", null));
-            expirationDeadlines.addAll(getPreferences(Context.MODE_PRIVATE).getStringSet("ExpirationDeadlines", null));*/
+        getSavedData();
+    }
 
-            Set<String> foodSet = getPreferences(Context.MODE_PRIVATE).getStringSet("FoodSet", null);
+    private void getSavedData(){
+        //get data from storage
+        Set<String> foodSet = getPreferences(Context.MODE_PRIVATE).getStringSet("FoodSet", null);
 
+        if(foodSet != null){
             for(String foodItemStr : foodSet){
                 try{
                     JSONObject jsonObject = new JSONObject(foodItemStr);
@@ -199,7 +204,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
 
     public void captureImageFromSdCard( View view ) {
         Intent intent = new Intent(Intent.ACTION_PICK);
@@ -248,16 +252,36 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
     }
 
-    private class ExpirationRetriever extends AsyncTask<String,Void,Void>{
+    private class ExpirationRetriever extends AsyncTask<String,Void,Boolean>{
 
-        @Override
-        protected Void doInBackground(String... params) {
-            webScrape(params[0]);
-            return null;
+        boolean doWebScrape = false;
+
+        private ExpirationRetriever(boolean doWebScrape){
+            this.doWebScrape = doWebScrape;
         }
 
-        public void webScrape(String foodInput) {
-            String query = "how+long+do+" + foodInput + "+last";
+        @Override
+        protected Boolean doInBackground(String... params) {
+            //TODO: take in multiple inputs using comma spacing ", "
+            if(params[0].length() != 0) {
+                String websiteLink = getWebsiteLink(params[0]);
+                if (isValidLink(websiteLink)) {
+                    if(doWebScrape){
+                        webScrape(websiteLink);
+                    }
+                    return true;
+                }
+            }
+
+            return false; //if website link does not exist
+        }
+
+        public boolean isValidLink(String websiteLink){
+            return websiteLink.length() != 0;
+        }
+
+        public String getWebsiteLink(String foodInput){
+            String query = "how long does " + foodInput + " last";
 
             Document googleSearchDoc = null;
 
@@ -271,24 +295,30 @@ public class MainActivity extends AppCompatActivity {
                 ioe.printStackTrace();
             }
 
+            final String desiredWebsite = "eatbydate";
+            String websiteLink = "";
+
             //using selector api here
             Elements links = googleSearchDoc.select("a[href]");
-
-            String eatbydateLink = "";
 
             for (Element link : links) {
                 String url = link.attr("href");
 
-                if (url.contains("eatbydate")) {
-                    eatbydateLink = "http://" + url.substring(url.lastIndexOf("www."), url.lastIndexOf('/') + 1);
+                if (url.contains(desiredWebsite)) {
+                    websiteLink = "http://" + url.substring(url.lastIndexOf("www."), url.lastIndexOf('/') + 1);
                 }
             }
+
+            return websiteLink;
+        }
+
+        public void webScrape(String websiteLink) {
 
             Document doc = null;
 
             //get page
             try {
-                doc = Jsoup.connect(eatbydateLink).get();
+                doc = Jsoup.connect(websiteLink).get();
                 //get element by id
                 Element table = doc.getElementById("unopened");
                 Elements rows = table.getElementsByTag("TR");
@@ -306,7 +336,7 @@ public class MainActivity extends AppCompatActivity {
                     headers[i].headerName = stringHeader;
                 }
 
-                //get text in elmeent
+                //populate headers with corresponding storage life expectancies
                 for (int i = 1; i < rows.size(); i = i + 1) {
                     Element row = rows.get(i);
                     Elements tds = row.getElementsByTag("TD");
@@ -317,8 +347,12 @@ public class MainActivity extends AppCompatActivity {
                     else if( tds.get(0).text().contains("lasts")){
                         headers[0].elems.add(tds.get(0).text().toString().substring(0, tds.get(0).text().toString().indexOf("lasts")));
                     }
+                    else if(tds.get(0).text().length() != 0 ){
+                        headers[0].elems.add("NULL(PLACEHOLDER)");
+                    }
                     else{
                         headers[0].elems.add("NULL(PLACEHOLDER)");
+                        //TODO: SHOULD BE empty string; don't add b/c empty row but for now keep it same to prevent formatting issues
                     }
 
                     for (int j = 1; j < tds.size(); j++) {
@@ -332,97 +366,24 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
+        protected void onPostExecute(Boolean isFound) {
+
+            if(isFound && doWebScrape){
+                updateFoodTypeList();
+            }
+        }
+
+        private void updateFoodTypeList() {
             ArrayList<String> firstHeaderElems = headers[0].elems;
             String[] foodTypes = new String[firstHeaderElems.size()];
 
-            for( int i = 0; i < firstHeaderElems.size(); i = i + 1 ){
-                foodTypes[ i ] = firstHeaderElems.get(i);
+            for (int i = 0; i < firstHeaderElems.size(); i = i + 1) {
+                foodTypes[i] = firstHeaderElems.get(i);
             }
 
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(getBaseContext(),
                     android.R.layout.simple_list_item_1, foodTypes);
-            mListView.setAdapter(adapter);
-        }
-    }
-
-    private class ReceiptRecognitionRetriever extends AsyncTask<String,String,Boolean>{
-
-        @Override
-        protected Boolean doInBackground(String... strings) {
-
-            String inputFile = strings[0];
-            String outputFile = strings[1];
-
-            try {
-                Client restClient = new Client();
-
-                restClient.applicationId = "StillFresh";
-                restClient.password = "mV3cmXCue7izcHAfX2OR8+H7";
-
-
-                publishProgress( "Uploading image...");
-
-                String language = "English"; // Comma-separated list: Japanese,English or German,French,Spanish etc.
-
-                ReceiptSettings receiptSettings = new ReceiptSettings();
-                receiptSettings.setReceiptCountry("Usa");
-
-                publishProgress("Uploading..");
-
-                // If you want to process business cards, uncomment this
-			/*
-			BusCardSettings busCardSettings = new BusCardSettings();
-			busCardSettings.setLanguage(language);
-			busCardSettings.setOutputFormat(BusCardSettings.OutputFormat.xml);
-			Task task = restClient.processBusinessCard(filePath, busCardSettings);
-			*/
-                Task task = restClient.processReceipt(inputFile, receiptSettings);
-
-                while( task.isTaskActive() ) {
-                    // Note: it's recommended that your application waits
-                    // at least 2 seconds before making the first getTaskStatus request
-                    // and also between such requests for the same task.
-                    // Making requests more often will not improve your application performance.
-                    // Note: if your application queues several files and waits for them
-                    // it's recommended that you use listFinishedTasks instead (which is described
-                    // at http://ocrsdk.com/documentation/apireference/listFinishedTasks/).
-
-                    Thread.sleep(5000);
-                    publishProgress( "Waiting.." );
-                    System.out.println("Waiting");
-                    task = restClient.getTaskStatus(task.Id);
-                }
-
-                System.out.println("In between...");
-
-                if( task.Status == Task.TaskStatus.Completed ) {
-                    System.out.println("Downloading...");
-                    publishProgress( "Downloading.." );
-                    FileOutputStream fos = openFileOutput(outputFile,MODE_WORLD_READABLE);
-                    System.out.println("Still Downloading...");
-                    try {
-                        restClient.downloadResult(task, fos);
-                    } finally {
-                        fos.close();
-                    }
-
-                    publishProgress( "Ready" );
-                    System.out.println("Ready");
-                } else if( task.Status == Task.TaskStatus.NotEnoughCredits ) {
-                    System.out.println("ERROR");
-                    throw new Exception( "Not enough credits to process task. Add more pages to your application's account." );
-                } else {
-                    System.out.println("ERROR #2");
-                    throw new Exception( "Task failed" );
-                }
-
-                return true;
-            } catch (Exception e) {
-                final String message = "Error: " + e.getMessage();
-                publishProgress( message);
-                return false;
-            }
+            foodOptionsListView.setAdapter(adapter);
         }
     }
 
@@ -477,7 +438,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     private int yearsToDays(int numYears){
         return 365 * numYears;
     }
@@ -498,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
         }
         else if(requestCode == FOOD_OPTIONS_REQUEST){
 
-            mEdit.setText(data.getStringExtra("FoodName"));
+            foodInputEditText.setText(data.getStringExtra("FoodName"));
         }
         else if(requestCode == STORAGE_OPTIONS_REQUEST){
 
@@ -548,6 +508,8 @@ public class MainActivity extends AppCompatActivity {
             ArrayList<String> receiptFoods = data.getStringArrayListExtra("receiptFoods");
             receiptFoods = filterFoods(receiptFoods);
             for(int i = 0; i < receiptFoods.size(); i++){
+
+                //TODO
                 System.out.println(receiptFoods.get(i));
             }
         }
@@ -564,7 +526,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isFood(String s) {
-        return true;
+        try {
+            return new ExpirationRetriever(false).execute(s).get();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     private void goToCurrentList() {
@@ -627,7 +596,6 @@ public class MainActivity extends AppCompatActivity {
         return c.getTime();
     }
 
-
     private void createNotification(Date expirationDeadline, String foodName) {
 
         Intent i = new Intent(getApplicationContext(), ExpirationNotification.class);
@@ -638,5 +606,9 @@ public class MainActivity extends AppCompatActivity {
         AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
         am.set(AlarmManager.RTC_WAKEUP, expirationDeadline.getTime()-86400000, pi);
 
+    }
+
+    private void addToList(ArrayList<String> addFoods){
+        //TODO
     }
 }

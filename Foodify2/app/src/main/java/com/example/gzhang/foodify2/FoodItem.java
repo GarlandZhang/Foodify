@@ -8,6 +8,7 @@ import org.json.JSONObject;
 
 /**
  * Created by GZhang on 2017-12-31.
+ * Holds the food and expiration date of the food
  */
 
 public class FoodItem implements Parcelable {
